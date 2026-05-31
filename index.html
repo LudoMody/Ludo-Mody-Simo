@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Ludo Mody — لعبة لودو</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg1:#1a1a2e;--bg2:#16213e;--bg3:#0f3460;--primary:#e94560;--text:#fff;--muted:#a0a0a0;--glass:rgba(255,255,255,0.05);--glass-border:rgba(255,255,255,0.1);--radius:16px;--shadow:0 8px 32px rgba(0,0,0,0.4);--board-size:600px}
+html{font-size:16px}
+body{font-family:Segoe UI,system-ui,sans-serif;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);min-height:100vh;color:var(--text);overflow-x:hidden;-webkit-tap-highlight-color:transparent}
+.hidden{display:none!important}
+button{cursor:pointer;font-family:inherit;border:none;outline:none;transition:all .25s}
+input{font-family:inherit;outline:none}
+.glass{background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--glass-border);border-radius:var(--radius)}
+.btn{padding:12px 24px;border-radius:10px;font-size:15px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary{background:linear-gradient(135deg,var(--primary),#ff6b6b);color:#fff}
+.btn-secondary{background:var(--glass);border:1px solid var(--glass-border);color:var(--text)}
+.btn-sm{padding:8px 16px;font-size:13px}
+.btn:hover{transform:translateY(-2px);box-shadow:0 4px 20px rgba(233,69,96,0.3)}
+#splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:center;align-items:center;background:radial-gradient(ellipse at center,#16213e,#1a1a2e);transition:opacity .6s}
+.splash-logo{width:160px;height:160px;border-radius:32px;background:linear-gradient(135deg,#e94560,#ff6b6b);display:flex;align-items:center;justify-content:center;font-size:60px;font-weight:900;color:#fff;box-shadow:0 0 60px rgba(233,69,96,0.4);animation:splashPulse 2s ease infinite;margin-bottom:24px}
+@keyframes splashPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.splash-title{font-size:40px;font-weight:800;background:linear-gradient(135deg,#e94560,#ff6b6b);-webkit-background-clip:text;background-clip:text;color:transparent}
+#login-screen{min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
+.login-box{width:100%;max-width:400px;padding:40px 32px;text-align:center;background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--glass-border);border-radius:24px;box-shadow:var(--shadow)}
+.login-box h1{font-size:28px;margin-bottom:4px}
+.login-box .sub{color:var(--muted);margin-bottom:28px;font-size:14px}
+#lobby{min-height:100vh;padding:20px}
+.lobby-header{display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:1px solid var(--glass-border);margin-bottom:24px}
+.lobby-header h1{font-size:24px;color:#e94560}
+.lobby-grid{display:grid;grid-template-columns:280px 1fr;gap:24px;max-width:1100px;margin:0 auto}
+.lobby-card{padding:20px}
+.lobby-card h3{font-size:15px;color:#e94560;margin-bottom:12px}
+#game-screen{min-height:100vh;padding:12px}
+.game-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.game-header h1{font-size:20px;color:#e94560}
+.game-layout{display:flex;gap:16px;max-width:1100px;margin:0 auto;align-items:flex-start}
+.game-main{flex:0 0 auto}
+.game-side{flex:1;min-width:0}
+#board-wrap{position:relative;width:var(--board-size);height:var(--board-size);margin:0 auto;border-radius:14px;padding:3px;background:linear-gradient(135deg,#ffd700,#d4a574,#8b6914);box-shadow:0 0 40px rgba(212,165,116,0.2),var(--shadow)}
+#game-board{width:100%;height:100%;border-radius:11px;display:block;cursor:pointer}
+.players-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.player-card{padding:10px 8px;text-align:center;border-radius:10px;transition:all .3s;background:var(--glass);border:2px solid transparent}
+.player-card.active{border-color:#e94560;animation:activeGlow 1.5s ease infinite}
+@keyframes activeGlow{0%,100%{box-shadow:0 0 8px rgba(233,69,96,0.2)}50%{box-shadow:0 0 20px rgba(233,69,96,0.5)}}
+.player-card.winner{border-color:#4caf50;background:rgba(76,175,80,0.15)}
+.player-card .p-color{width:24px;height:24px;border-radius:50%;margin:0 auto 4px;border:2px solid rgba(255,255,255,0.3)}
+.player-card .p-name{font-size:12px;font-weight:600}
+.player-card .p-status{font-size:10px;color:var(--muted);display:flex;justify-content:center;gap:3px}
+.player-card .p-status .piece-dot{width:14px;height:14px;border-radius:50%;display:inline-block;opacity:.5}
+.player-card .p-status .piece-dot.home{opacity:.3}
+.player-card .p-status .piece-dot.active{opacity:1;box-shadow:0 0 6px currentColor}
+.dice-area{text-align:center;margin-top:10px}
+.dice-3d{width:64px;height:64px;perspective:400px;display:inline-block;cursor:pointer;margin:0 auto 8px}
+.dice-3d.disabled{pointer-events:none;opacity:.5}
+.dice-cube{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.22,1,.36,1)}
+.dice-cube.rolling{animation:diceRoll .5s ease-out}
+@keyframes diceRoll{0%{transform:rotateX(0)}100%{transform:rotateX(720deg)}}
+.dice-face{position:absolute;width:100%;height:100%;border-radius:10px;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr 1fr;padding:8px;background:linear-gradient(145deg,#fff,#e0e0e0);backface-visibility:hidden}
+.dice-face .dot{width:10px;height:10px;border-radius:50%;background:#333;justify-self:center;align-self:center;display:none}
+.dice-face .dot.show{display:block}
+.dice-face[data-face="1"]{transform:translateZ(32px)}
+.dice-face[data-face="6"]{transform:rotateY(180deg) translateZ(32px)}
+.dice-face[data-face="2"]{transform:rotateY(-90deg) translateZ(32px)}
+.dice-face[data-face="5"]{transform:rotateY(90deg) translateZ(32px)}
+.dice-face[data-face="3"]{transform:rotateX(90deg) translateZ(32px)}
+.dice-face[data-face="4"]{transform:rotateX(-90deg) translateZ(32px)}
+.dice-roll-btn{padding:10px 28px;border-radius:10px;font-size:15px;font-weight:600;background:linear-gradient(135deg,#e94560,#ff6b6b);color:#fff}
+.dice-roll-btn:disabled{opacity:.4;cursor:default}
+.chat-box{display:flex;flex-direction:column;min-height:200px;background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--glass-border);border-radius:12px;overflow:hidden}
+.chat-msgs{flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:6px;max-height:180px}
+.chat-msg{padding:6px 10px;background:rgba(255,255,255,0.06);border-radius:8px;font-size:13px}
+.chat-msg.system{text-align:center;background:transparent;color:var(--muted);font-size:11px}
+.chat-foot{display:flex;padding:8px;gap:6px}
+.chat-foot input{flex:1;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid var(--glass-border);border-radius:8px;color:#fff;font-size:13px}
+.chat-foot button{padding:8px 14px;background:#e94560;color:#fff;border-radius:8px;font-size:13px}
+#game-over{position:fixed;inset:0;z-index:500;display:flex;justify-content:center;align-items:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px)}
+.go-box{text-align:center;padding:40px 36px;max-width:400px;width:90%;background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--glass-border);border-radius:24px}
+.go-box h2{font-size:26px;margin-bottom:4px}
+.go-box .trophy{font-size:64px;margin-bottom:12px;animation:bounce 1s ease infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.go-box .winner-name{font-size:18px;color:#e94560;margin-bottom:20px}
+.go-box .go-btns{display:flex;gap:10px;justify-content:center}
+@media(max-width:1024px){:root{--board-size:480px}.lobby-grid{grid-template-columns:1fr}.game-layout{flex-direction:column;align-items:center}}
+@media(max-width:768px){:root{--board-size:100vw}#game-screen{padding:8px}.players-row{gap:4px}.player-card{padding:6px 4px}.player-card .p-name{font-size:10px}.player-card .p-color{width:18px;height:18px}.player-card .p-status .piece-dot{width:10px;height:10px}.dice-3d{width:52px;height:52px}.dice-face[data-face="1"]{transform:translateZ(26px)}.dice-face[data-face="6"]{transform:rotateY(180deg) translateZ(26px)}.dice-face[data-face="2"]{transform:rotateY(-90deg) translateZ(26px)}.dice-face[data-face="5"]{transform:rotateY(90deg) translateZ(26px)}.dice-face[data-face="3"]{transform:rotateX(90deg) translateZ(26px)}.dice-face[data-face="4"]{transform:rotateX(-90deg) translateZ(26px)}}
+.lobby-card .divider{display:flex;align-items:center;margin:12px 0;color:#a0a0a0;font-size:12px}.lobby-card .divider::before,.lobby-card .divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.08)}.lobby-card .divider span{margin:0 10px}@keyframes toastIn{0%{opacity:0;transform:translateX(-50%) translateY(20px)}100%{opacity:1;transform:translateX(-50%) translateY(0)}}
+</style>
+<base target="_blank">
+</head>
+<body><div id="splash">
+<div class="splash-logo">LM</div>
+<div class="splash-title">LUDO MODY</div>
+<div class="splash-sub" style="color:#a0a0a0;margin-top:8px">🎲 لعبة لودو الكلاسيكية</div>
+<button onclick="document.getElementById('splash').classList.add('hidden');showLogin();" style="margin-top:20px;padding:8px 20px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:#fff;cursor:pointer;font-size:13px;z-index:10000">تخطي التحميل</button>
+<div style="margin-top:40px;width:200px;height:3px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;position:relative"><div style="position:absolute;width:40%;height:100%;background:#e94560;border-radius:3px;animation:splashLoad 1.2s ease-in-out infinite"></div></div>
+<style>@keyframes splashLoad{0%{left:-40%}100%{left:100%}}</style>
+</div>
+<div id="login-screen" class="hidden">
+<div class="login-box"><div class="mini-logo" style="width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,#e94560,#ff6b6b);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;margin:0 auto 16px">LM</div>
+<h1>Ludo Mody</h1><p class="sub">اختر طريقة اللعب</p>
+<button class="btn btn-primary" style="width:100%;margin-bottom:12px" onclick="loginGoogle()">🌐 Google</button>
+<button class="btn btn-secondary" style="width:100%;margin-bottom:12px" onclick="loginFacebook()">📘 Facebook</button>
+<div class="divider" style="display:flex;align-items:center;margin:16px 0;color:#a0a0a0;font-size:13px"><span style="flex:1;height:1px;background:rgba(255,255,255,0.1)"></span><span style="margin:0 10px">أو</span><span style="flex:1;height:1px;background:rgba(255,255,255,0.1)"></span></div>
+<input type="text" id="guest-name" placeholder="اسمك" value="لاعب" style="width:100%;padding:12px 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;font-size:15px;margin-bottom:12px;text-align:right">
+<button class="btn btn-guest" style="width:100%;background:transparent;border:2px solid rgba(255,255,255,0.1);color:#fff;padding:12px;border-radius:10px;font-weight:600;cursor:pointer" onclick="loginGuest()">🎮 لعب سريع ضد AI</button>
+</div></div>
+<div id="lobby" class="hidden">
+<div class="lobby-header"><h1>🎲 Ludo Mody</h1><div class="user-badge" style="display:flex;align-items:center;gap:10px"><span id="lobby-name" style="font-size:14px"></span><div class="avatar" id="lobby-avatar" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#e94560,#ff6b6b);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px"></div><button class="btn btn-sm btn-secondary" onclick="logout()">خروج</button></div></div>
+<div class="lobby-grid">
+<div class="sidebar">
+<div class="glass lobby-card"><h3>🎮 لعبة محلية</h3>
+<label style="font-size:13px;color:#a0a0a0;display:block;margin-bottom:8px">صعوبة الذكاء الاصطناعي:</label>
+<select id="ai-diff" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;font-size:14px;margin-bottom:12px"><option value="easy">🥉 سهل</option><option value="medium" selected>🥈 متوسط</option><option value="hard">🥇 صعب</option></select>
+<div class="players-config" id="players-config" style="display:flex;flex-direction:column;gap:8px;margin:12px 0"></div>
+<button class="btn btn-primary" onclick="startLocalGame()" style="width:100%;margin-top:8px">🚀 ابدأ اللعبة</button>
+</div>
+<div class="glass lobby-card"><h3>🌐 العب أونلاين</h3>
+<div id="online-logged-out" style="display:none">
+<p style="font-size:13px;color:#a0a0a0;margin-bottom:12px">سجل دخول بحساب Google أو Facebook للعب عبر الإنترنت</p>
+<button class="btn btn-primary" onclick="loginGoogle()" style="width:100%;margin-bottom:8px">🌐 Google</button>
+<button class="btn btn-secondary" onclick="loginFacebook()" style="width:100%">📘 Facebook</button>
+</div>
+<div id="online-logged-in">
+<label style="font-size:13px;color:#a0a0a0;display:block;margin-bottom:8px">رمز الغرفة (6 أحرف):</label>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+<input type="text" id="room-code" maxlength="6" placeholder="أدخل الرمز" style="flex:1;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;font-size:14px;text-align:center;letter-spacing:4px;text-transform:uppercase">
+<button class="btn btn-primary btn-sm" onclick="joinRoom()">🔑 انضمام</button>
+<button class="btn btn-secondary btn-sm" onclick="copyRoomCode()" id="copy-code-btn" style="display:none" title="نسخ الرمز">📋</button>
+</div>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+<button class="btn btn-secondary" onclick="createRoom()" style="flex:1">🆕 إنشاء غرفة</button>
+<button class="btn btn-secondary btn-sm hidden" onclick="leaveRoom()" id="leave-room-btn" style="display:none">✕ مغادرة</button>
+</div>
+<div id="room-status" style="font-size:13px;color:#e94560;text-align:center;min-height:20px"></div>
+<div id="room-players" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"></div>
+<button class="btn btn-primary hidden" id="online-start-btn" onclick="startOnlineGame()" style="width:100%;margin-top:8px">🚀 ابدأ اللعبة الأونلاين</button>
+</div>
+</div>
+</div>
+<div>
+<div class="glass lobby-card"><h3>🏆 الإحصائيات</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center">
+<div><div style="font-size:24px;font-weight:700;color:#e94560" id="stat-wins">0</div><div style="font-size:11px;color:#a0a0a0">فوز</div></div>
+<div><div style="font-size:24px;font-weight:700" id="stat-games">0</div><div style="font-size:11px;color:#a0a0a0">لعب</div></div>
+<div><div style="font-size:24px;font-weight:700;color:#4caf50" id="stat-rate">0%</div><div style="font-size:11px;color:#a0a0a0">نسبة فوز</div></div>
+</div></div>
+<div class="glass lobby-card" id="room-list-card"><h3>📋 الغرف المتاحة</h3><div id="room-list" style="max-height:200px;overflow-y:auto"></div></div>
+</div>
+</div></div>
+<div id="game-screen" class="hidden">
+<div class="game-header"><h1>🎲 Ludo Mody</h1><button class="btn btn-sm btn-secondary" onclick="confirmLeave()">✕ خروج</button></div>
+<div class="players-row" id="players-bar"></div>
+<div class="game-layout">
+<div class="game-main"><div id="board-wrap"><canvas id="game-board" width="600" height="600"></canvas></div>
+<div class="dice-area">
+<div class="dice-3d" id="dice-3d" onclick="onDiceClick()"><div class="dice-cube" id="dice-cube">
+<div class="dice-face" data-face="1"><div class="dot" style="grid-column:2;grid-row:2"></div></div>
+<div class="dice-face" data-face="2"><div class="dot" style="grid-column:3;grid-row:1"></div><div class="dot" style="grid-column:1;grid-row:3"></div></div>
+<div class="dice-face" data-face="3"><div class="dot" style="grid-column:3;grid-row:1"></div><div class="dot" style="grid-column:2;grid-row:2"></div><div class="dot" style="grid-column:1;grid-row:3"></div></div>
+<div class="dice-face" data-face="4"><div class="dot" style="grid-column:1;grid-row:1"></div><div class="dot" style="grid-column:3;grid-row:1"></div><div class="dot" style="grid-column:1;grid-row:3"></div><div class="dot" style="grid-column:3;grid-row:3"></div></div>
+<div class="dice-face" data-face="5"><div class="dot" style="grid-column:1;grid-row:1"></div><div class="dot" style="grid-column:3;grid-row:1"></div><div class="dot" style="grid-column:2;grid-row:2"></div><div class="dot" style="grid-column:1;grid-row:3"></div><div class="dot" style="grid-column:3;grid-row:3"></div></div>
+<div class="dice-face" data-face="6"><div class="dot" style="grid-column:1;grid-row:1"></div><div class="dot" style="grid-column:3;grid-row:1"></div><div class="dot" style="grid-column:1;grid-row:2"></div><div class="dot" style="grid-column:3;grid-row:2"></div><div class="dot" style="grid-column:1;grid-row:3"></div><div class="dot" style="grid-column:3;grid-row:3"></div></div>
+</div></div>
+<div style="text-align:center"><button class="dice-roll-btn" id="roll-btn" onclick="onDiceClick()">🎲 ارمي النرد</button><div id="dice-result" style="color:#a0a0a0;font-size:12px;margin-top:4px;min-height:18px"></div></div>
+</div></div>
+<div class="game-side">
+<div class="chat-box"><div class="chat-head" style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.1);font-weight:600;font-size:13px">💬 أحداث اللعبة</div>
+<div class="chat-msgs" id="chat-msgs"></div>
+<div class="chat-foot" style="display:flex;padding:8px;border-top:1px solid rgba(255,255,255,0.1);gap:6px">
+<input type="text" id="chat-input" placeholder="رسالة..." onkeydown="if(event.key==='Enter')sendChat()">
+<button onclick="sendChat()">إرسال</button>
+</div></div></div></div></div>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<div id="game-over" class="hidden">
+<div class="go-box"><div class="trophy">🏆</div><h2>انتهت اللعبة!</h2><div class="winner-name" id="go-name"></div>
+<div class="go-btns"><button class="btn btn-primary" id="go-rematch-btn" onclick="startLocalGame()">🔄 لعب مرة أخرى</button><button class="btn btn-secondary" onclick="backToLobby()">🏠 العودة</button></div></div></div><script>
+const COLORS=[
+{id:'red',name:'أحمر',fill:'#e53935',light:'#ffcdd2',dark:'#b71c1c',glow:'rgba(229,57,53,0.35)'},
+{id:'green',name:'أخضر',fill:'#43a047',light:'#c8e6c9',dark:'#1b5e20',glow:'rgba(67,160,71,0.35)'},
+{id:'yellow',name:'أصفر',fill:'#fdd835',light:'#fff9c4',dark:'#f57f17',glow:'rgba(253,216,53,0.35)'},
+{id:'blue',name:'أزرق',fill:'#1e88e5',light:'#bbdefb',dark:'#0d47a1',glow:'rgba(30,136,229,0.35)'}
+];
+const TRACK=[
+[6,0],[6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],
+[0,7],[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[6,9],[6,10],[6,11],[6,12],[6,13],[6,14],
+[7,14],[8,14],[8,13],[8,12],[8,11],[8,10],[8,9],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],
+[14,7],[14,6],[13,6],[12,6],[11,6],[10,6],[9,6],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],[7,0]
+];
+const HC=[[[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],[[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],[[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],[[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]]];
+const SP=[0,13,26,39],HE=[51,12,25,38];
+const HB=[[[1,1],[1,4],[4,1],[4,4]],[[1,10],[1,13],[4,10],[4,13]],[[10,13],[10,10],[13,13],[13,10]],[[10,1],[10,4],[13,1],[13,4]]];
+const SZ=new Set([0,8,13,21,26,34,39,47]);
+const DD={1:[[2,2]],2:[[3,1],[1,3]],3:[[3,1],[2,2],[1,3]],4:[[1,1],[3,1],[1,3],[3,3]],5:[[1,1],[3,1],[2,2],[1,3],[3,3]],6:[[1,1],[3,1],[1,2],[3,2],[1,3],[3,3]]};
+const AC=window.AudioContext||window.webkitAudioContext;let actx=null;
+function initAudio(){if(!actx)actx=new AC()}
+function playTone(f,d,t,sine,v){try{if(!actx){initAudio();if(!actx)return;}const o=actx.createOscillator(),g=actx.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||0.15,actx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+d);o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+d)}catch(e){}}
+function playNoise(d,v){try{if(!actx){initAudio();if(!actx)return;}const b=actx.createBuffer(1,actx.sampleRate*d,actx.sampleRate),s=b.getChannelData(0);for(let i=0;i<b.length;i++)s[i]=Math.random()*2-1;const n=actx.createBufferSource(),g=actx.createGain();n.buffer=b;g.gain.setValueAtTime(v||0.08,actx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+d);const f=actx.createBiquadFilter();f.type='bandpass';f.frequency.value=2000;n.connect(f);f.connect(g);g.connect(actx.destination);n.start()}catch(e){}}
+const SX={dice(){ns(0.25,0.1);setTimeout(()=>tn(600,0.1,'square',0.05),200)},move(){tn(500,0.08,'sine',0.12)},capture(){ns(0.15,0.12);tn(200,0.2,'sawtooth',0.1)},home(){tn(800,0.1,'sine',0.1);setTimeout(()=>tn(1000,0.1,'sine',0.1),100)},win(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tn(f,0.2,'sine',0.15),i*120))},click(){tn(800,0.04,'square',0.04)}};
+let G=null,sel=-1,cu={id:'guest',name:'لاعب'};
+let isOnline=false;
+function createGame(pn,ad){G={players:[{id:'human',name:pn,color:0,pieces:[-1,-1,-1,-1],finished:0,isAI:false,aiDiff:null},{id:'ai1',name:'AI 1',color:1,pieces:[-1,-1,-1,-1],finished:0,isAI:true,aiDiff:ad},{id:'ai2',name:'AI 2',color:2,pieces:[-1,-1,-1,-1],finished:0,isAI:true,aiDiff:ad},{id:'ai3',name:'AI 3',color:3,pieces:[-1,-1,-1,-1],finished:0,isAI:true,aiDiff:ad}],turn:0,dice:0,sixes:0,phase:'rolling',winner:-1};for(let i=3;i>0;i--){const j=Math.floor(Math.random()*(i+1));[G.players[i],G.players[j]]=[G.players[j],G.players[i]]}sel=-1}
+function getCoords(pl,pi){const p=G.players[pl],v=p.pieces[pi];if(v===-1)return HB[p.color][pi];if(v>=52&&v<=57)return HC[p.color][v-52];if(v>=58)return[7,7];return TRACK[v]}
+function validMove(pl,pi,d){const p=G.players[pl],v=p.pieces[pi];if(v>=58)return 0;if(v===-1)return d===6;if(v>=0&&v<=51){const n=v+d,e=HE[p.color];if(n>e+6)return 0;if(v<=e&&n>e)return (n-e-1)<=6;return 1}if(v>=52&&v<=57)return(v-52)+d<=6;return 0}
+function getMoves(pl){const m=[];for(let i=0;i<4;i++)if(vm(pl,i,G.dice))m.push(i);return m}
+function execMove(pl,pi){const p=G.players[pl],v=p.pieces[pi];let nv;if(v===-1)nv=SP[p.color];else if(v>=0&&v<=51){const r=v+G.dice,e=HE[p.color];if(v<=e&&r>e){const c=r-e-1;nv=c>=6?58:52+c}else nv=r}else if(v>=52&&v<=57){const t=(v-52)+G.dice;nv=t===6?58:52+t}p.pieces[pi]=nv;if(v>=0&&v<=51&&!SZ.has(nv)){for(let o=0;o<4;o++){if(o===pl)continue;const op=G.players[o];for(let oi=0;oi<4;oi++){if(op.pieces[oi]===nv&&!SZ.has(nv)){op.pieces[oi]=-1;lg('⚡ '+p.name+' أسر قطعة '+op.name+'!');SX.capture()}}}}if(nv===58){p.finished++;lg('🏠 '+p.name+' أوصل قطعة! ('+p.finished+'/4)');SX.home()}else SX.move();if(isOnline)syncGameState()}
+function checkWin(){for(let i=0;i<4;i++)if(G.players[i].finished===4){G.winner=i;G.phase='won';SX.win();return i}return-1}
+function nextTurn(){if(G.phase==='won')return;if(G.dice===6){G.sixes++;if(G.sixes>=3){lg('❌ '+G.players[G.turn].name+' 3 ستات!');G.sixes=0;G.turn=(G.turn+1)%4}}else{G.sixes=0;G.turn=(G.turn+1)%4}G.phase='rolling';sel=-1;up();if(isOnline)syncGameState();if(G.players[G.turn].isAI)setTimeout(()=>at(),600)}
+function aiTurn(){if(G.phase==='won')return;const pi=G.turn,p=G.players[pi];if(!p.isAI)return;G.dice=Math.floor(Math.random()*6)+1;lg('🎲 '+p.name+' رمى '+G.dice);SX.dice();ud();up();setTimeout(()=>am(pi),400)}
+function drawBoard(){if(!G)return;const w=cv.width,c=w/15;cx.clearRect(0,0,w,w);cx.fillStyle='#1a1a2e';cx.fillRect(0,0,w,w);const cr=[[0,0,6,6,0],[0,9,6,6,1],[9,9,6,6,2],[9,0,6,6,3]];for(const[rr,cc,hh,ww,ci]of cr){const cl=COLORS[ci];cx.fillStyle=cl.dark;cx.fillRect((cc-0.08)*c,(rr-0.08)*c,(ww+0.16)*c,(hh+0.16)*c);cx.fillStyle=cl.light;cx.fillRect(cc*c,rr*c,ww*c,hh*c);const hx=(cc+3)*c,hy=(rr+3)*c,hr=2.3*c;const bg=cx.createRadialGradient(hx,hy,0,hx,hy,hr);bg.addColorStop(0,'#fff');bg.addColorStop(0.7,'#f0f0f0');bg.addColorStop(1,cl.light);cx.fillStyle=bg;cx.beginPath();cx.arc(hx,hy,hr,0,Math.PI*2);cx.fill();cx.strokeStyle=cl.fill;cx.lineWidth=3;cx.stroke();cx.fillStyle=cl.fill;cx.globalAlpha=0.2;cx.beginPath();cx.arc(hx,hy,hr*0.65,0,Math.PI*2);cx.fill();cx.globalAlpha=1;for(let d=0;d<8;d++){const da=(d/8)*Math.PI*2;cx.save();cx.globalAlpha=0.08;cx.fillStyle='#000';cx.beginPath();cx.arc(hx+hr*0.8*Math.cos(da),hy+hr*0.8*Math.sin(da),hr*0.08,0,Math.PI*2);cx.fill();cx.restore()}}cx.fillStyle='#f0ece4';cx.fillRect(6*c,0,3*c,6*c);cx.fillRect(6*c,9*c,3*c,6*c);cx.fillRect(0,6*c,6*c,3*c);cx.fillRect(9*c,6*c,6*c,3*c);cx.fillStyle='#e8e0d0';cx.fillRect(6*c,6*c,3*c,3*c);cx.strokeStyle='rgba(0,0,0,0.15)';cx.lineWidth=0.5;cx.strokeRect(6*c,0,3*c,6*c);cx.strokeRect(6*c,9*c,3*c,6*c);cx.strokeRect(0,6*c,6*c,3*c);cx.strokeRect(9*c,6*c,6*c,3*c);for(let i=0;i<52;i++){const[r,co]=TRACK[i];cx.fillStyle=i%2===0?'rgba(255,255,255,0.03)':'rgba(0,0,0,0.03)';cx.fillRect(co*c,r*c,c,c);cx.strokeStyle='rgba(0,0,0,0.12)';cx.lineWidth=0.5;cx.strokeRect(co*c,r*c,c,c);if(SZ.has(i)){const sx=co*c+c/2,sy=r*c+c/2;cx.save();cx.shadowColor='#ffd700';cx.shadowBlur=8;cx.globalAlpha=0.7;cx.fillStyle='#ffd700';cx.beginPath();for(let j=0;j<5;j++){const a=(j*4*Math.PI/5)-Math.PI/2;cx[j===0?'moveTo':'lineTo'](sx+c*0.18*Math.cos(a),sy+c*0.18*Math.sin(a))}cx.closePath();cx.fill();cx.restore()}}for(let pl=0;pl<4;pl++)for(let si=0;si<6;si++){const[r,co]=HC[pl][si];cx.fillStyle=COLORS[pl].light;cx.fillRect(co*c+1,r*c+1,c-2,c-2);cx.strokeStyle=COLORS[pl].fill;cx.lineWidth=1.5;cx.strokeRect(co*c+1,r*c+1,c-2,c-2);cx.fillStyle=COLORS[pl].fill;cx.globalAlpha=0.08;cx.beginPath();cx.arc((co+0.5)*c,(r+0.5)*c,c*0.25,0,Math.PI*2);cx.fill();cx.globalAlpha=1}const ax=7.5*c,ay=7.5*c,ar=c*1.2;const cg=cx.createRadialGradient(ax,ay,0,ax,ay,ar);cg.addColorStop(0,'#f5f0e0');cg.addColorStop(0.6,'#ede5d0');cg.addColorStop(1,'#d4c9a8');cx.fillStyle=cg;cx.beginPath();cx.arc(ax,ay,ar,0,Math.PI*2);cx.fill();cx.strokeStyle='#c4a97a';cx.lineWidth=2.5;cx.stroke();for(let i=0;i<4;i++){const a=(i*Math.PI/2)-Math.PI/4;cx.save();cx.translate(ax,ay);cx.rotate(a);cx.shadowColor='rgba(0,0,0,0.15)';cx.shadowBlur=3;cx.beginPath();cx.moveTo(ar*0.02,-ar*0.02);cx.lineTo(ar*0.85,-ar*0.28);cx.lineTo(ar*0.85,ar*0.28);cx.closePath();cx.fillStyle=COLORS[i].fill;cx.globalAlpha=0.6;cx.fill();cx.globalAlpha=1;cx.restore()}cx.fillStyle='#c4a97a';cx.beginPath();cx.arc(ax,ay,ar*0.12,0,Math.PI*2);cx.fill();cx.fillStyle='#ffd700';cx.globalAlpha=0.25;cx.beginPath();cx.arc(ax,ay,ar*0.3,0,Math.PI*2);cx.fill();cx.globalAlpha=1;for(let pl=0;pl<4;pl++)for(let pi=0;pi<4;pi++){if(!G)continue;dp(pl,pi,c)}
+}
+function drawPiece(pl,pi,c){if(!G)return;const p=G.players[pl];if(p.pieces[pi]>=58)return;const[r,co]=gc(pl,pi);const x=(co+0.5)*c,y=(r+0.5)*c,rd=c*0.35;const isSel=pl===G.turn&&pi===sel&&!p.isAI;const cl=COLORS[pl];cx.save();cx.shadowColor='rgba(0,0,0,0.4)';cx.shadowBlur=6;cx.shadowOffsetY=2;cx.beginPath();cx.arc(x,y,rd*1.1,0,Math.PI*2);cx.fillStyle='#d4a574';cx.fill();const g=cx.createRadialGradient(x-rd*0.25,y-rd*0.25,0,x,y,rd);g.addColorStop(0,'#fff');g.addColorStop(0.3,cl.fill);g.addColorStop(0.75,cl.dark);cx.beginPath();cx.arc(x,y,rd*0.85,0,Math.PI*2);cx.fillStyle=g;cx.fill();cx.beginPath();cx.arc(x,y,rd*0.85,0,Math.PI*2);cx.strokeStyle='#ffd700';cx.lineWidth=1.5;cx.globalAlpha=0.6;cx.stroke();cx.globalAlpha=1;cx.restore();if(isSel){cx.save();cx.shadowColor=cl.glow;cx.shadowBlur=20;cx.beginPath();cx.arc(x,y,rd*1.2,0,Math.PI*2);cx.strokeStyle=cl.fill;cx.lineWidth=2;cx.globalAlpha=0.3;cx.stroke();cx.restore()}cx.save();const sr=rd*0.28;cx.fillStyle='#ffd700';cx.shadowColor='#ffd700';cx.shadowBlur=4;cx.beginPath();for(let i=0;i<5;i++){const a=(i*2*Math.PI/5)-Math.PI/2;cx[i===0?'moveTo':'lineTo'](x+sr*Math.cos(a),y+sr*Math.sin(a));const a2=a+Math.PI/5;const ir=sr*0.4;cx.lineTo(x+ir*Math.cos(a2),y+ir*Math.sin(a2))}cx.closePath();cx.fill();cx.restore();cx.save();cx.globalAlpha=0.35;cx.fillStyle='#fff';cx.beginPath();cx.ellipse(x-rd*0.2,y-rd*0.25,rd*0.12,rd*0.07,-0.5,0,Math.PI*2);cx.fill();cx.restore()}
+function updateUI(){if(!G)return;rpl();ud();db();ub()}
+function renderPlayers(){document.getElementById('players-bar').innerHTML=G.players.map((p,i)=>{const a=i===G.turn&&G.phase!=='won'?'active':'',w=G.winner===i?'winner':'',c=COLORS[p.color];return '<div class="player-card '+a+' '+w+'"><div class="p-color" style="background:'+c.fill+'"></div><div class="p-name">'+p.name+'</div><div class="p-status">'+p.pieces.map(v=>{let cl='active';if(v===-1)cl='home';else if(v>=58)cl='finished';return '<span class="piece-dot '+cl+'" style="background:'+c.fill+';color:'+c.fill+'"></span>'}).join('')+'</div></div>'}).join('')}
+function updateDice(){const diceValue=G.dice,diceCube=document.getElementById('dice-cube');document.querySelectorAll('.dice-face .dot').forEach(d2=>d2.classList.remove('show'));if(diceValue>=1&&diceValue<=6){const ds=DD[diceValue],fa=diceCube.querySelector('[data-face="'+diceValue+'"]');if(fa){const dt=fa.querySelectorAll('.dot');dt.forEach((dot,i)=>{if(i<ds.length)dot.classList.add('show')})}const rs={1:'',6:'rotateY(180deg)',2:'rotateY(-90deg)',5:'rotateY(90deg)',3:'rotateX(90deg)',4:'rotateX(-90deg)'};diceCube.style.transform=rs[diceValue]||''}}
+function updateBtn(){const btn=document.getElementById('roll-btn'),d3=document.getElementById('dice-3d');if(!G){btn.disabled=true;return}const p=G.players[G.turn],cr=G.phase==='rolling'&&!p.isAI;btn.disabled=!cr;d3.classList.toggle('disabled',!cr);btn.textContent=cr?'🎲 ارمي النرد':(G.phase==='won'?'🏆 انتهت!':'⏳ انتظر دورك')}
+function onDiceClick(){if(!G||G.phase==='won'||G.dice!==0)return;const p=G.players[G.turn];if(p.isAI||G.phase!=='rolling')return;if(isOnline&&rmPlayerIdx!==G.turn){toast('⚠️ ليس دورك');return}SX.click();ia();const cu=document.getElementById('dice-cube');cu.classList.add('rolling');cu.style.transform='rotateX('+(Math.random()*720)+'deg) rotateY('+(Math.random()*720)+'deg)';G.phase='rolling_wait';ub();G.dice=Math.floor(Math.random()*6)+1;SX.dice();if(isOnline)syncGameState();setTimeout(()=>{cu.classList.remove('rolling');ud();lg('🎲 '+p.name+' رمى '+G.dice);const ms=gm(G.turn);if(ms.length===0){lg('💤 '+p.name+' ليس لديه حركات');if(isOnline)syncGameState();setTimeout(()=>{nt();up()},600);return}if(ms.length===1){sel=ms[0];dm(G.turn);return}G.phase='moving';up();document.getElementById('dice-result').textContent='👆 اختر قطعة لتحريكها'},700)}
+function doMove(pi){if(sel<0)return;em(pi,sel);sel=-1;document.getElementById('dice-result').textContent='';up();const w=cw();if(w>=0){if(isOnline)syncGameState();setTimeout(()=>sgo(w),500);return}setTimeout(()=>{nt();up()},400)}
+function handleBoardClick(e){if(!G||G.phase!=='moving')return;const p=G.players[G.turn];if(p.isAI)return;const r=cv.getBoundingClientRect(),sx=cv.width/r.width,sy=cv.height/r.height;const mx=(e.clientX-r.left)*sx,my=(e.clientY-r.top)*sy,c=cv.width/15;const ms=gm(G.turn);let cl=-1,cd=30;for(const pi of ms){const[r2,co]=gc(G.turn,pi);const px=(co+0.5)*c,py=(r2+0.5)*c,dd=Math.hypot(mx-px,my-py);if(dd<cd){cd=dd;cl=pi}}if(cl>=0){sel=cl;dm(G.turn)}}
+function toast(t){const d=document.createElement('div');d.textContent=t;d.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:10px 24px;border-radius:10px;font-size:14px;z-index:9999;max-width:90%';document.body.appendChild(d);setTimeout(()=>{d.style.opacity='0';d.style.transition='opacity .3s';setTimeout(()=>d.remove(),300)},2500)}
+function addLog(t){const c=document.getElementById('chat-msgs'),d=document.createElement('div');d.className='chat-msg system';d.textContent=t;c.appendChild(d);c.scrollTop=c.scrollHeight}
+function sendChat(){const i=document.getElementById('chat-input'),t=i.value.trim();if(!t)return;if(isOnline&&curRoom){sendOnlineChat(t);i.value='';return}const c=document.getElementById('chat-msgs'),d=document.createElement('div');d.className='chat-msg';d.innerHTML='<div class="sender" style="font-weight:600;font-size:11px;margin-bottom:1px">'+cu.name+'</div><div>'+t+'</div>';c.appendChild(d);c.scrollTop=c.scrollHeight;i.value=''}
+function hideAll(){['splash','login-screen','lobby','game-screen','game-over'].forEach(id=>document.getElementById(id).classList.add('hidden'))}
+function showLogin(){ha();document.getElementById('login-screen').classList.remove('hidden')}
+function showLobby(){ha();document.getElementById('lobby').classList.remove('hidden');ulo()}
+function showGame(){ha();document.getElementById('game-screen').classList.remove('hidden')}
+setTimeout(function(){
+  var s=document.getElementById('splash');
+  if(s){
+    s.style.opacity='0';
+    setTimeout(function(){
+      if(s)s.classList.add('hidden');
+      try{
+        var sv=localStorage.getItem('lumo');
+        if(sv){
+          cu=JSON.parse(sv);
+          showLobby();
+        } else {
+          showLogin();
+        }
+      }catch(e){
+        console.error('Splash error:',e);
+        showLogin();
+      }
+    },600);
+  }
+},2000);
+// ======================== FIREBASE COMPAT ========================
+let fbd=null,fau=null;
+function initFB(){
+  if(typeof firebase==='undefined'){toast('⚠️ فشل تحميل Firebase. تحقق من اتصال الإنترنت.');return;}
+  if(fau)return;
+  try{
+    firebase.initializeApp({apiKey:"AIzaSyAAoe7W9qiY99AY1PPeF7pixzeV3ziMr24",authDomain:"ludo-mody.firebaseapp.com",databaseURL:"https://ludo-mody-default-rtdb.firebaseio.com",projectId:"ludo-mody",storageBucket:"ludo-mody.firebasestorage.app",messagingSenderId:"738206076566",appId:"1:738206076566:web:970157ca6ececd089afcb7"});
+    fau=firebase.auth();fbd=firebase.database();
+  }catch(e){console.error('Firebase error:',e)}
+}
+function loginGoogle(){
+  initFB();
+  if(!fau)return;
+  fau.signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(r=>{const u=r.user;cu={id:u.uid,name:u.displayName||'مستخدم',photo:u.photoURL,email:u.email};localStorage.setItem('lumo',JSON.stringify(cu));slo();toast('👋 مرحباً '+cu.name)}).catch(e=>{if(e.code!=='auth/popup-closed-by-user')toast('⚠️ '+e.message)})
+}
+function loginFacebook(){
+  initFB();
+  if(!fau)return;
+  fau.signInWithPopup(new firebase.auth.FacebookAuthProvider()).then(r=>{const u=r.user;cu={id:u.uid,name:u.displayName||'مستخدم',photo:u.photoURL,email:u.email};localStorage.setItem('lumo',JSON.stringify(cu));slo();toast('👋 مرحباً '+cu.name)}).catch(e=>{if(e.code!=='auth/popup-closed-by-user')toast('⚠️ '+e.message)})
+}
+function loginGuest(){const n=document.getElementById('guest-name').value.trim()||'لاعب';cu={id:'g'+Date.now(),name:n,photo:null,email:null};localStorage.setItem('lumo',JSON.stringify(cu));slo()}
+function logout(){localStorage.removeItem('lumo');cu={id:'guest',name:'لاعب'};sl()}
+function isLoggedInFB(){return !!(fau&&fau.currentUser)}
+// ======================== ROOM SYSTEM ========================
+let curRoom=null,rmPlayerIdx=-1,rmRef=null,rmCb=null,roomChatRef=null,roomChatCb=null,isOnline=false,syncRef=null,syncCb=null;
+function createRoom(){
+  if(!fau||!fau.currentUser){toast('⚠️ سجل دخول أولاً');return}
+  if(curRoom){toast('⚠️ أنت في غرفة بالفعل');return}
+  initFB();const code=Math.random().toString(36).substring(2,8).toUpperCase(),u=fau.currentUser;
+  rmRef=fbd.ref('rooms/'+code);
+  rmRef.set({code,players:{0:{id:u.uid,name:u.displayName||'لاعب',photo:u.photoURL||'',online:true,color:0}},state:null,status:'waiting',createdAt:firebase.database.ServerValue.TIMESTAMP}).then(()=>{
+    curRoom=code;rmPlayerIdx=0;listenRoom(code);listenRoomChat();setOnlineStatus(true);
+    rs('🟢 تم إنشاء الغرفة: '+code);document.getElementById('room-code').value=code;
+    toast('✅ تم إنشاء الغرفة! الرمز: '+code);upRO();sendOnlineSystem('🟢 أنشأ '+u.displayName+' الغرفة');
+  })
+}
+function joinRoom(){
+  const inp=document.getElementById('room-code'),code=inp.value.trim().toUpperCase();
+  if(!code||code.length<3){toast('⚠️ أدخل رمز الغرفة');return}
+  if(!fau||!fau.currentUser){toast('⚠️ سجل دخول أولاً');return}
+  if(curRoom){toast('⚠️ أنت في غرفة بالفعل');return}
+  initFB();
+  fbd.ref('rooms/'+code).once('value').then(snap=>{
+    if(!snap.exists()){toast('⚠️ الغرفة غير موجودة');return}
+    const data=snap.val();
+    if(data.status!=='waiting'){toast('⚠️ اللعبة بدأت بالفعل');return}
+    const pl=Object.keys(data.players||{}).length;
+    if(pl>=4){toast('⚠️ الغرفة ممتلئة');return}
+    const u=fau.currentUser,idx=pl;
+    fbd.ref('rooms/'+code).update({['players/'+idx]:{id:u.uid,name:u.displayName||'لاعب',photo:u.photoURL||'',online:true,color:idx}}).then(()=>{
+      curRoom=code;rmPlayerIdx=idx;rmRef=fbd.ref('rooms/'+code);
+      listenRoom(code);listenRoomChat();setOnlineStatus(true);
+      rs('🟢 انضممت إلى الغرفة!');sendOnlineSystem('🟢 انضم '+u.displayName+' ('+(idx+1)+'/4)');
+      toast('✅ انضممت إلى الغرفة '+code);upRO();
+    })
+  })
+}
+function leaveRoom(){
+  if(!curRoom||!rmRef)return
+  cleanupRoom();sendOnlineSystem('🔴 غادر '+cu.name);
+  if(rmPlayerIdx>=0)rmRef.update({['players/'+rmPlayerIdx]:null});
+  curRoom=null;rmPlayerIdx=-1;rmRef=null;isOnline=false;
+  document.getElementById('room-code').value='';document.getElementById('room-players').innerHTML='';
+  document.getElementById('online-start-btn').classList.add('hidden');document.getElementById('leave-room-btn').style.display='none';
+  rs('');upRO();toast('👋 غادرت الغرفة');
+}
+function cleanupRoom(){
+  if(rmRef&&rmCb){rmRef.off('value',rmCb);rmCb=null}
+  if(roomChatRef&&roomChatCb){roomChatRef.off('value',roomChatCb);roomChatCb=null}
+  if(syncRef&&syncCb){syncRef.off('value',syncCb);syncCb=null}
+}
+function listenRoom(code){
+  cleanupRoom();
+  rmRef=fbd.ref('rooms/'+code);
+  rmCb=snap=>{
+    if(!snap.exists()){rs('🔴 الغرفة أغلقت');leaveRoom();return}
+    const data=snap.val(),pl=data.players||{};
+    const plArr=Object.values(pl).filter(p=>p);
+    document.getElementById('room-players').innerHTML=plArr.map((p,i)=>'<div style="display:flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:20px;font-size:12px"><div style="width:10px;height:10px;border-radius:50%;background:'+['#e53935','#43a047','#fdd835','#1e88e5'][i]+'"></div>'+(p.online?'🟢':'🔴')+' '+p.name+'</div>').join('');
+    if(data.status==='playing'&&data.state&&!G){G=data.state;isOnline=true;sg();up();syncListenGame();listenRoomChat();lg('🔄 تم استعادة اللعبة')}
+    if(data.status==='finished'){rs('🏁 انتهت اللعبة')}
+    const myIdx=plArr.findIndex(p=>fau&&fau.currentUser&&p.id===fau.currentUser.uid);
+    if(myIdx>=0){rmPlayerIdx=myIdx;document.getElementById('leave-room-btn').style.display='block'}
+    document.getElementById('online-start-btn').classList.toggle('hidden',data.status!=='waiting');
+  };
+  rmRef.on('value',rmCb);
+}
+function startOnlineGame(){
+  if(!curRoom||!rmRef){toast('⚠️ لست في غرفة');return}
+  if(rmPlayerIdx!==0){toast('⚠️ فقط منشئ الغرفة يمكنه البدء');return}
+  rmRef.once('value').then(snap=>{
+    if(!snap.exists())return;
+    const data=snap.val(),pl=Object.values(data.players||{}).filter(p=>p);
+    if(pl.length<2){toast('⚠️ انتظر لاعبين آخرين');return}
+    if(pl.filter(p=>p.online).length<2){toast('⚠️ بعض اللاعبين غير متصلين');return}
+    const g={players:pl.slice(0,4).map((pl2,i)=>({name:pl2.name,color:i,pieces:[-1,-1,-1,-1],finished:0,isAI:false,id:pl2.id||''})),dice:0,turn:0,sixes:0,phase:'rolling',winner:-1};
+    rmRef.update({state:g,status:'playing'}).then(()=>{
+      G=g;isOnline=true;document.getElementById('online-start-btn').classList.add('hidden');
+      sg();up();lg('🎲 بدأت اللعبة الأونلاين!');syncListenGame();listenRoomChat();sendOnlineSystem('🎲 بدأت اللعبة!');
+      if(rmPlayerIdx!==G.turn){G.phase='rolling_wait';ub()}
+    })
+  })
+}
+function fallbackCopy(t){const i=document.createElement('input');i.value=t;document.body.appendChild(i);i.select();document.execCommand('copy');document.body.removeChild(i);toast('✅ تم نسخ الرمز: '+t)}
+function copyRoomCode(){const c=document.getElementById('room-code').value;if(!c)return;if(navigator.clipboard){navigator.clipboard.writeText(c).then(()=>toast('✅ تم نسخ الرمز: '+c)).catch(()=>fallbackCopy(c))}else fallbackCopy(c);}
+function upRO(){const inRoom=curRoom!==null;document.getElementById('online-start-btn').classList.toggle('hidden',!inRoom);document.getElementById('copy-code-btn').style.display=inRoom?'inline-flex':'none';if(inRoom)document.getElementById('room-code').value=curRoom}
+function rs(t){document.getElementById('room-status').textContent=t}
+function setOnlineStatus(online){
+  if(!curRoom||!fau?.currentUser)return;
+  fbd.ref('rooms/'+curRoom+'/players/'+rmPlayerIdx).update({online,name:fau.currentUser.displayName||cu.name,photo:fau.currentUser.photoURL||'',id:fau.currentUser.uid})
+}
+window.addEventListener('beforeunload',()=>{if(curRoom)setOnlineStatus(false)});
+// ======================== MULTIPLAYER SYNC ========================
+function syncListenGame(){
+  if(syncRef&&syncCb){syncRef.off('value',syncCb);syncCb=null}
+  if(!curRoom)return;
+  syncRef=fbd.ref('rooms/'+curRoom+'/state');
+  syncCb=snap=>{
+    if(!snap.exists()||!G||G.winner>=0)return;
+    const remote=snap.val();
+    if(remote._from===fau?.currentUser?.uid)return;
+    if(remote.turn!==G.turn||remote.dice!==G.dice||remote.phase!==G.phase||remote.winner!==G.winner){
+      G.players.forEach((p,i)=>{if(remote.players[i])p.pieces=[...remote.players[i].pieces]});
+      G.turn=remote.turn;G.dice=remote.dice;G.phase=remote.phase;G.winner=remote.winner;
+      if(G.winner>=0)sgo(G.winner);else up()
+    }
+  };
+  syncRef.on('value',syncCb);
+}
+function syncGameState(){
+  if(!curRoom||!isOnline||!G)return;
+  fbd.ref('rooms/'+curRoom+'/state').update({...G,_from:fau?.currentUser?.uid||'',_ts:Date.now()});
+}
+// ======================== MULTIPLAYER CHAT ========================
+function sendOnlineChat(text){
+  if(!curRoom)return;
+  fbd.ref('rooms/'+curRoom+'/chat').push({text,name:cu.name,time:firebase.database.ServerValue.TIMESTAMP});
+}
+function sendOnlineSystem(text){
+  if(!curRoom)return;
+  fbd.ref('rooms/'+curRoom+'/chat').push({text,system:true,time:firebase.database.ServerValue.TIMESTAMP});
+}
+function listenRoomChat(){
+  if(roomChatRef&&roomChatCb){roomChatRef.off('value',roomChatCb);roomChatCb=null}
+  if(!curRoom)return;
+  roomChatRef=fbd.ref('rooms/'+curRoom+'/chat').orderByChild('time').limitToLast(50);
+  roomChatCb=snap=>{
+    if(!snap.exists())return;
+    const msgs=[];snap.forEach(c=>{const v=c.val();msgs.push(v)});
+    const c=document.getElementById('chat-msgs');c.innerHTML='';
+    msgs.forEach(m=>{
+      const d=document.createElement('div');d.className='chat-msg';
+      if(m.system)d.innerHTML='<div style="text-align:center;color:#a0a0a0;font-size:11px">'+m.text+'</div>';
+      else d.innerHTML='<div class="sender" style="font-weight:600;font-size:11px;margin-bottom:1px">'+m.name+'</div><div>'+m.text+'</div>';
+      c.appendChild(d)
+    });
+    c.scrollTop=c.scrollHeight
+  };
+  roomChatRef.on('value',roomChatCb);
+}
+function updateLobby(){document.getElementById('lobby-name').textContent=cu.name;document.getElementById('lobby-avatar').textContent=cu.name[0]||'?';const s=JSON.parse(localStorage.getItem('lums')||'{"w":0,"g":0}');document.getElementById('stat-wins').textContent=s.w;document.getElementById('stat-games').textContent=s.g;document.getElementById('stat-rate').textContent=s.g>0?Math.round(s.w/s.g*100)+'%':'0%';document.getElementById('players-config').innerHTML=['أنت','AI 1','AI 2','AI 3'].map((n,i)=>'<div class="player-config" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:rgba(255,255,255,0.05);border-radius:8px"><span class="color-dot" style="width:20px;height:20px;border-radius:50%;background:'+['#e53935','#43a047','#fdd835','#1e88e5'][i]+';flex-shrink:0"></span><label style="font-size:13px;flex:1">'+n+'</label><span style="font-size:11px;color:#a0a0a0">'+(i===0?'👤 أنت':'🤖 AI')+'</span></div>').join('');const fbOk=!!(fau&&fau.currentUser);document.getElementById('online-logged-out').style.display=fbOk?'none':'block';document.getElementById('online-logged-in').style.display=fbOk?'block':'none'}
+function startLocalGame(){const df=document.getElementById('ai-diff').value;cg(cu.name,df);sg();const wr=document.getElementById('board-wrap');const newSize=wr.offsetWidth||600;if(newSize>0){cv.width=newSize;cv.height=newSize;}up();lg('🎲 بدأت اللعبة الجديدة!');lg('🎯 دور: '+G.players[G.turn].name);if(G.players[G.turn].isAI)setTimeout(()=>at(),800)}
+function confirmLeave(){if(G&&G.phase!=='won'&&G.phase!=='waiting'&&!confirm('هل تريد الخروج؟'))return;if(isOnline&&curRoom){leaveRoom();cleanupRoom()}btl()}
+function backToLobby(){document.getElementById('game-over').classList.add('hidden');document.getElementById('chat-msgs').innerHTML='';document.getElementById('dice-result').textContent='';document.getElementById('dice-cube').style.transform='';G=null;sel=-1;isOnline=false;cleanupRoom();slo()}
+function showGameOver(wi){const p=G.players[wi],c=COLORS[p.color];document.getElementById('go-name').textContent='🏆 '+p.name;document.getElementById('game-over').classList.remove('hidden');const s=JSON.parse(localStorage.getItem('lums')||'{"w":0,"g":0}');s.g++;if(!p.isAI)s.w++;localStorage.setItem('lums',JSON.stringify(s));document.getElementById('go-rematch-btn').style.display=isOnline?'none':'inline-flex';if(isOnline&&curRoom)rmRef.update({status:'finished'})}
+cv.addEventListener('click',handleBoardClick);
+let touchHandled=false;
+cv.addEventListener('touchstart',e=>{e.preventDefault();if(touchHandled)return;touchHandled=true;const t=e.touches[0];handleBoardClick({clientX:t.clientX,clientY:t.clientY});setTimeout(()=>touchHandled=false,300)},{passive:false});
+window.addEventListener('resize',()=>{if(!document.getElementById('game-screen').classList.contains('hidden')){const wr=document.getElementById('board-wrap');const newSize=wr.offsetWidth||600;if(newSize>0){cv.width=newSize;cv.height=newSize;}if(G)db()}});
+console.log('🎲 Ludo Mody v2.1 — Fixed & Enhanced');
+
+var rpl=renderPlayers,ud=updateDice,db=drawBoard,ub=updateBtn,ha=hideAll,ulo=updateLobby,slo=showLobby,sg=showGame,btl=backToLobby,hbc=handleBoardClick,dm=doMove,lg=addLog,sl=showLogin,cg=createGame,gc=getCoords,vm=validMove,gm=getMoves,em=execMove,cw=checkWin,nt=nextTurn,at=aiTurn,am=aiMove,ia=initAudio,tn=playTone,ns=playNoise,sgo=showGameOver,odc=onDiceClick,sc=sendChat,cl=confirmLeave,slg=startLocalGame,up=updateUI,to=toast,dp=drawPiece;
+</script>
+</body>
+</html>
+
+
+
